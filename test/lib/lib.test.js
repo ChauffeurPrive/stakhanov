@@ -5,9 +5,7 @@ const { expect } = require('chai');
 const sinon = require('sinon');
 const amqplib = require('amqplib');
 
-const {
-  promisifyWithTimeout
-} = require('../../lib/lib');
+const { promisifyWithTimeout } = require('../../lib/lib');
 
 const amqpUrl = 'amqp://guest:guest@localhost:5672';
 

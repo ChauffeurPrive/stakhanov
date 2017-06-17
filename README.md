@@ -1,8 +1,9 @@
-# chpr-worker
-[![CircleCI](https://circleci.com/gh/transcovo/chpr-worker.svg?style=shield)](https://circleci.com/gh/transcovo/chpr-worker)
-[![codecov](https://codecov.io/gh/transcovo/chpr-worker/branch/master/graph/badge.svg)](https://codecov.io/gh/transcovo/chpr-worker)
+# BusyBee
+[![CircleCI](https://circleci.com/gh/ChauffeurPrive/busybee/tree/master.svg?style=shield&circle-token=9a4d0d25bd8e0134d33f386a66c90c80dd401cf1)](https://circleci.com/gh/ChauffeurPrive/busybee/tree/master)
+[![codecov](https://codecov.io/gh/ChauffeurPrive/busybee/branch/master/graph/badge.svg)](https://codecov.io/gh/ChauffeurPrive/busybee)
 
-chpr-worker allows you to easily create a worker that take tasks from an AMQP queue. It handles common concerns related to implementing a worker with AMQP:
+BusyBee allows you to easily create workers that handle tasks from an AMQP queue. 
+It handles common concerns related to implementing a worker with AMQP:
 - Number of tasks handled at the same time
 - Timeout after which the task is considered as failed
 - Handle disconnections from the AMQP server
@@ -10,9 +11,12 @@ chpr-worker allows you to easily create a worker that take tasks from an AMQP qu
 
 **WARNING**
 
-The `queueName` configuration must be unique for each worker, otherwise messages won't necessarily be routed to the good consumer.
+The `queueName` configuration must be unique for each worker, otherwise messages won't necessarily be routed to 
+the good consumer.
 
-When listening, the lib will create a queue of the form `queueName.routingKey` for each routing key/handler. That is why the queueName config must really be unique, typically of the form `application.workername`. This will generate a unique queue name per routing key, of the form `application.workername.routingkey`.
+When listening, the lib will create a queue of the form `queueName.routingKey` for each routing key/handler. 
+That is why the queueName config must really be unique, typically of the form `application.workername`. 
+This will generate a unique queue name per routing key, of the form `application.workername.routingkey`.
 
 Example:
 
@@ -23,12 +27,12 @@ Example:
     const worker = workerlib.createWorkers([{
       handle: handle,
       validate: validate,
-      routingKey: 'test.something_happened'
+      routingKey: 'application.something_happened'
     }], {
       workerName: 'my worker',
       amqpUrl: 'amqp://guest:guest@localhost:5672',
       exchangeName: 'bus',
-      queueName: 'test.test_watcher'
+      queueName: 'example.simple_worker'
     }, {
       channelPrefetch: 50,
       taskTimeout: 30000,
@@ -43,12 +47,12 @@ To listen on channel:
 ```
 To shutdown worker:
 ```javascript
-    worker.close();
+    yield worker.close();
 ```
-Remark: for testing purpose, as the close function will execute a process.exit, you can
-add the following parameter to the close function:
+Remark: for testing purpose, as the close function will eventually execute a process.exit, 
+you can add the following parameter to the close function:
 ```javascript
-    worker.close(false);
+    yield worker.close(false);
 ```
 ### Dev Requirements
 
