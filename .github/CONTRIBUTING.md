@@ -1,16 +1,16 @@
-# Contributing to BusyBee
+# Contributing to Stakhanov
 
 This section will guide you through the contribution process.
 
 ### Step 1: Fork
 
-Fork the project [on GitHub](https://github.com/ChauffeurPrive/busybee) and clone your fork
+Fork the project [on GitHub](https://github.com/ChauffeurPrive/stakhanov) and clone your fork
 locally.
 
-```text
-$ git clone git@github.com:username/busybee.git
-$ cd busybee
-$ git remote add upstream https://github.com/ChauffeurPrive/busybee.git
+```bash
+$ git clone git@github.com:username/stakhanov.git
+$ cd stakhanov
+$ git remote add upstream https://github.com/ChauffeurPrive/stakhanov.git
 ```
 
 #### Which branch?
@@ -22,8 +22,8 @@ and built upon.
 
 Create a branch and start hacking:
 
-```text
-$ git checkout -b my-branch -t origin/master
+```bash
+$ git checkout -b my-amazing-feature -t origin/master
 ```
 
 Any text you write should follow the [Style Guide](https://github.com/airbnb/javascript).
@@ -32,14 +32,14 @@ Any text you write should follow the [Style Guide](https://github.com/airbnb/jav
 
 Make sure git knows your name and email address:
 
-```text
+```bash
 $ git config --global user.name "J. Random User"
 $ git config --global user.email "j.random.user@example.com"
 ```
 
 Add and commit:
 
-```text
+```bash
 $ git add my/changed/files
 $ git commit
 ```
@@ -47,20 +47,24 @@ $ git commit
 ### Commit message guidelines
 
 The commit message should describe what changed and why.
+Example:
+```text
+Add an optional parameter to createWorkers to configure task completion timeout
+```
     
 ### Step 4: Rebase
 
 Use `git rebase` (not `git merge`) to synchronize your work with the main
 repository.
 
-```text
+```bash
 $ git fetch upstream
 $ git rebase upstream/master
 ```
 
 ### Step 5: Test
 
-Bug fixes and features should come with tests. We are using the [mocha javascript 
+Bug fixes and features must come with tests. We are using the [mocha javascript 
 test framework](https://mochajs.org/) along with [sinon.js](http://sinonjs.org/) for all 
 our tests and so should you in your contribution. 
 
@@ -70,7 +74,7 @@ look in the `test/` directory if it seems unclear to you.
 
 To run the tests (including code linting) on Unix / macOS:
 
-```text
+```bash
 $ npm test
 ```
 
@@ -81,7 +85,7 @@ If you want to run the linter without running tests, use `npm run lint`.
 
 ### Step 6: Push
 
-```text
+```bash
 $ git push origin my-branch
 ```
 
@@ -96,7 +100,7 @@ Pull Request.
 
 You can push more commits to your branch:
 
-```text
+```bash
 $ git add my/changed/files
 $ git commit
 $ git push origin my-branch
@@ -104,7 +108,7 @@ $ git push origin my-branch
 
 Or you can rebase against master:
 
-```text
+```bash
 $ git fetch --all
 $ git rebase origin/master
 $ git push --force-with-lease origin my-branch
@@ -113,7 +117,7 @@ $ git push --force-with-lease origin my-branch
 Or you can amend the last commit (for example if you want to change the commit
 log).
 
-```text
+```bash
 $ git add any/changed/files
 $ git commit --amend
 $ git push --force-with-lease origin my-branch
@@ -129,12 +133,12 @@ awaiting an answer on something.
 
 In order to land, a Pull Request needs to be reviewed and
 [approved](#getting-approvals-for-your-pull-request) by
-at least one Chauffeur Privé Collaborator and pass a
+at least one Chauffeur Privé maintainer and pass a
 [CI (Continuous Integration) test run](#ci-testing).
 After that, as long as there are no objections
-from a Collaborator, the Pull Request can be merged. 
+from a maintainer, the Pull Request can be merged. 
 
-When a collaborator lands your Pull Request, they will post
+When a maintainer lands your Pull Request, they will post
 a comment to the Pull Request page mentioning the commit(s) it
 landed as. GitHub often shows the Pull Request as `Closed` at this
 point, but don't worry. If you look at the branch you raised your
@@ -170,9 +174,9 @@ Every Pull Request needs to be tested
 to make sure that it works on the platforms that Node.js
 supports. This is done by running the code through the CI system.
 
-Only a Collaborator can start a CI run. Usually one of them will do it
+Only a maintainer can start a CI run. Usually one of them will do it
 for you as approvals for the Pull Request come in.
-If not, you can ask a Collaborator to start a CI run.
+If not, you can ask a maintainer to start a CI run.
 
 <a id="developers-certificate-of-origin"></a>
 ## Developer's Certificate of Origin 1.1
