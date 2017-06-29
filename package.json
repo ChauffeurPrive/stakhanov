@@ -1,6 +1,6 @@
 {
-  "name": "busybee",
-  "version": "1.0.0",
+  "name": "stakhanov",
+  "version": "0.1.0",
   "description": "AMQP worker library",
   "main": "index.js",
   "engines": {
