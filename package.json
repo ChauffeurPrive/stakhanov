@@ -45,7 +45,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/chauffeurprive/busybee.git",
+    "url": "git+https://github.com/chauffeurprive/stakhanov.git",
     "private": false
   },
   "keywords": [
@@ -56,7 +56,7 @@
   "author": "Chauffeur Privé",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/chauffeurprive/busybee/issues"
+    "url": "https://github.com/chauffeurprive/stakhanov/issues"
   },
-  "homepage": "https://github.com/chauffeurprive/busybee#readme"
+  "homepage": "https://github.com/chauffeurprive/stakhanov#readme"
 }
