@@ -57,5 +57,11 @@ typings/
 # dotenv environment variables file
 .env
 
-# intellij
+# auto-gen doc
+doc/
+
+# IntelliJ files
 .idea/
+
+# System files
+.DS_Store

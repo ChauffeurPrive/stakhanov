@@ -1,6 +1,7 @@
 # Stakhanov
 [![CircleCI](https://circleci.com/gh/ChauffeurPrive/stakhanov.svg?style=shield&circle-token=9a4d0d25bd8e0134d33f386a66c90c80dd401cf1)](https://circleci.com/gh/ChauffeurPrive/stakhanov)
 [![codecov](https://codecov.io/gh/ChauffeurPrive/stakhanov/branch/master/graph/badge.svg)](https://codecov.io/gh/ChauffeurPrive/stakhanov)
+[![package](https://img.shields.io/npm/v/stakhanov.svg)](https://www.npmjs.com/package/stakhanov)
 [![License](https://img.shields.io/github/license/ChauffeurPrive/stakhanov.svg)](LICENSE)
 
 [Stakhanov](https://fr.wikipedia.org/wiki/Alekse%C3%AF_Stakhanov) allows you to easily create workers that handle 
