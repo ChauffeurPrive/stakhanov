@@ -41,6 +41,37 @@ Example:
       processExitTimeout: 3000
     });
 ```
+
+Spec:
+    
+    createWorkers(handlers, config, options = {})
+
+Create and return a worker instance.
+
+#### handlers
+
+An array of handlers to handle incoming messages, each handler is an object with the following keys:
+* `routingKey`: name of the routing key to bind to
+* `handle`: function to handle incoming messages (see example below)
+* `validate`: function validating incoming messages bodies (see example below). If the function does not throw, the message is considered valid
+
+#### config
+
+Configuration of the worker:
+* `amqpUrl`: url of the AMQP broker
+* `exchangeName`: name of the exchange to listen on
+* `queueName`: name of the queue to bind to / create
+* `workerName`: name of the worker, used for logging purposes
+
+#### options
+Optional parameters for the worker:
+* `heartbeat`: if provided, will override default [heartbeat](https://www.rabbitmq.com/heartbeats.html) value (in seconds, default 10)
+* `taskTimeout`: task timeout (maximum time in milliseconds allowed to be spent on message handling, default 30000)
+* `processExitTimeout`:  process exit timeout (maximum time in milliseconds the worker will wait for connections to close before forcing exit, default 3000)
+* `channelPrefetch`:  channel [prefetch](https://www.rabbitmq.com/consumer-prefetch.html) value (default 100)
+* `logger`:  logger object implementing common logging functions (debug, info, warn, error)
+
+
 ### Basic use
 
 To listen on channel:
