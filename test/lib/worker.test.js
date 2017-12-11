@@ -423,9 +423,9 @@ describe('Worker library', () => {
     });
   });
 
-  describe('forceExit parameter setting', () => {
-    it('should forcefully exit process on worker close', function* test() {
-      sandbox.stub(process, 'exit');
+  describe('#close', () => {
+    it('should forcefully exit process on worker close (forceExit=true)', function* test() {
+      const exitStub = sandbox.stub(process, 'exit');
       const worker = createWorkers([{
         handle: _.identity,
         validate: _.identity,
@@ -442,8 +442,30 @@ describe('Worker library', () => {
         });
       yield worker.listen();
       yield worker.close();
-      yield cb => setTimeout(cb, 500);
-      expect(process.exit.called).to.be.true();
+      expect(exitStub.args).to.deep.equal([
+        [0]
+      ]);
+    });
+
+    it('should not exit process on worker close (forceExit=false)', function* test() {
+      const exitStub = sandbox.stub(process, 'exit');
+      const worker = createWorkers([{
+        handle: _.identity,
+        validate: _.identity,
+        routingKey
+      }],
+        {
+          workerName,
+          amqpUrl,
+          exchangeName,
+          queueName
+        }, {
+          processExitTimeout: 1,
+          logger
+        });
+      yield worker.listen();
+      yield worker.close(false);
+      expect(exitStub.args).to.deep.equal([]);
     });
   });
 
