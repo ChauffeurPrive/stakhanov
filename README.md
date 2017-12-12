@@ -70,6 +70,7 @@ Optional parameters for the worker:
 * `taskTimeout`: task timeout (maximum time in milliseconds allowed to be spent on message handling, default 30000)
 * `processExitTimeout`:  process exit timeout (maximum time in milliseconds the worker will wait for connections to close before forcing exit, default 3000)
 * `channelCloseTimeout`:  timeout between channel cancelation and close (maximum time in milliseconds the worker will let unfinished messages processing before nacking them, default 500)
+* `closeOnSignals`:  listen to SIGINT/SIGTERM and call worker.close for a graceful shutdown (default false)
 * `channelPrefetch`:  channel [prefetch](https://www.rabbitmq.com/consumer-prefetch.html) value (default 100)
 * `logger`:  logger object implementing common logging functions (debug, info, warn, error)
 

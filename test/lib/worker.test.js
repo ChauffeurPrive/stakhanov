@@ -445,8 +445,15 @@ describe('Worker library', () => {
   });
 
   describe('#close', () => {
+    let exitStub;
+    beforeEach(() => {
+      // without this, mocha will stop at the end of the test
+      process.removeAllListeners('SIGTERM');
+      process.removeAllListeners('SIGINT');
+      exitStub = sandbox.stub(process, 'exit');
+    });
+
     it('should forcefully exit process on worker close (forceExit=true)', function* test() {
-      const exitStub = sandbox.stub(process, 'exit');
       const worker = createWorkers([{
         handle: _.identity,
         validate: _.identity,
@@ -470,7 +477,6 @@ describe('Worker library', () => {
     });
 
     it('should not exit process on worker close (forceExit=false)', function* test() {
-      const exitStub = sandbox.stub(process, 'exit');
       const worker = createWorkers([{
         handle: _.identity,
         validate: _.identity,
@@ -489,6 +495,30 @@ describe('Worker library', () => {
       yield worker.listen();
       yield worker.close(false);
       expect(exitStub.args).to.deep.equal([]);
+    });
+
+    it('should be idempotent (can be safely called twice)', function* test() {
+      const worker = createWorkers([{
+        handle: _.identity,
+        validate: _.identity,
+        routingKey
+      }],
+        {
+          workerName,
+          amqpUrl,
+          exchangeName,
+          queueName
+        }, {
+          channelCloseTimeout: 1,
+          processExitTimeout: 1,
+          logger
+        });
+      yield worker.listen();
+      yield worker.close();
+      yield worker.close();
+      expect(exitStub.args).to.deep.equal([
+        [0]
+      ]);
     });
 
     it('should finish handling current messages before closing a channel', function* test() {
@@ -517,6 +547,10 @@ describe('Worker library', () => {
 
       const remainingMessage = yield channel.get(formattedQueueName);
       expect(remainingMessage).to.equal(false);
+
+      expect(handlerStub.args.map(arg => arg[0])).to.deep.equal([
+        { hello: 'world' }
+      ]);
     });
 
     it('should nack unfinished messages if the close timeout is over', function* test() {
@@ -554,6 +588,137 @@ describe('Worker library', () => {
           routingKey: 'test.something_happened'
         }
       });
+
+      expect(handlerStub.args.map(arg => arg[0])).to.deep.equal([
+        { hello: 'world' }
+      ]);
+    });
+
+    it('should NOT be called on SIGINT if closeOnSignals is false', function* test() {
+      const handlerDoneSpy = sandbox.spy();
+      const handlerStub = sandbox.stub()
+        .returns(() => new Promise(resolve => setTimeout(
+          () => {
+            handlerDoneSpy();
+            resolve();
+          },
+          20)
+        ));
+      const worker = createWorkers([{
+        handle: handlerStub,
+        validate: _.identity,
+        routingKey
+      }],
+        {
+          workerName,
+          amqpUrl,
+          exchangeName,
+          queueName
+        }, {
+          channelCloseTimeout: 50,
+          processExitTimeout: 1,
+          logger
+        });
+      yield worker.listen();
+      expect(process.listeners('SIGINT').map(fn => fn.name))
+        .to.deep.equal([]);
+      yield worker.close(false);
+    });
+
+    it('should be called on SIGINT if closeOnSignals is true', function* test() {
+      const handlerDoneSpy = sandbox.spy();
+      const handlerStub = sandbox.stub()
+        .returns(() => new Promise(resolve => setTimeout(
+          () => {
+            handlerDoneSpy();
+            resolve();
+          },
+          20)
+        ));
+      const worker = createWorkers([{
+        handle: handlerStub,
+        validate: _.identity,
+        routingKey
+      }],
+        {
+          workerName,
+          amqpUrl,
+          exchangeName,
+          queueName
+        }, {
+          channelCloseTimeout: 50,
+          processExitTimeout: 1,
+          closeOnSignals: true,
+          logger
+        });
+      yield worker.listen();
+      expect(process.listeners('SIGINT').map(fn => fn.name))
+        .to.deep.equal(['onSignal']);
+      const message = new Buffer(JSON.stringify({ hello: 'world' }));
+      channel.publish(exchangeName, routingKey, message);
+      yield cb => setTimeout(cb, 10);
+      expect(handlerDoneSpy.callCount).to.equal(0);
+
+      process.kill(process.pid, 'SIGINT');
+      yield cb => setTimeout(cb, 60);
+
+      // check the message has been processed and acked
+      expect(handlerDoneSpy.callCount).to.equal(1);
+      const remainingMessage = yield channel.get(formattedQueueName);
+      expect(remainingMessage).to.equal(false);
+
+      expect(handlerStub.args.map(arg => arg[0])).to.deep.equal([
+        { hello: 'world' }
+      ]);
+      expect(exitStub).to.have.been.calledWith(0);
+    });
+
+    it('should be called on SIGTERM if closeOnSignals is true', function* test() {
+      const handlerDoneSpy = sandbox.spy();
+      const handlerStub = sandbox.stub()
+        .returns(() => new Promise(resolve => setTimeout(
+          () => {
+            handlerDoneSpy();
+            resolve();
+          },
+          20)
+        ));
+      const worker = createWorkers([{
+        handle: handlerStub,
+        validate: _.identity,
+        routingKey
+      }],
+        {
+          workerName,
+          amqpUrl,
+          exchangeName,
+          queueName
+        }, {
+          channelCloseTimeout: 50,
+          processExitTimeout: 1,
+          closeOnSignals: true,
+          logger
+        });
+      yield worker.listen();
+      expect(process.listeners('SIGTERM').map(fn => fn.name))
+        .to.deep.equal(['onSignal']);
+      const message = new Buffer(JSON.stringify({ hello: 'world' }));
+      channel.publish(exchangeName, routingKey, message);
+      yield cb => setTimeout(cb, 10);
+      expect(handlerDoneSpy.callCount).to.equal(0);
+
+      process.kill(process.pid, 'SIGTERM');
+      yield cb => setTimeout(cb, 60);
+
+      // check the message has been processed and acked
+      expect(handlerDoneSpy.callCount).to.equal(1);
+      const remainingMessage = yield channel.get(formattedQueueName);
+      expect(remainingMessage).to.equal(false);
+
+      expect(handlerStub.args.map(arg => arg[0])).to.deep.equal([
+        { hello: 'world' }
+      ]);
+      expect(exitStub).to.have.been.calledWith(0);
     });
   });
 
