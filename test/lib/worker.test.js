@@ -303,8 +303,9 @@ describe('Worker library', () => {
       yield worker.listen();
       channel.publish(exchangeName, routingKey, new Buffer(JSON.stringify(messageContent2)));
       channel.publish(exchangeName, routingKey2, new Buffer(JSON.stringify(messageContent2)));
-      yield worker.wait('task.completed');
-      yield worker.wait('task.completed');
+      while (!(worker1CallParameter && worker2CallParameter)) {
+        yield worker.wait('task.completed');
+      }
       expect(worker1CallParameter).to.deep.equal(messageContent2);
       expect(worker2CallParameter).to.deep.equal({ validated: true });
       yield worker.close(false);
