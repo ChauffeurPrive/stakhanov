@@ -38,7 +38,8 @@ Example:
     }, {
       channelPrefetch: 50,
       taskTimeout: 30000,
-      processExitTimeout: 3000
+      processExitTimeout: 3000,
+      channelCloseTimeout: 500,
     });
 ```
 
@@ -68,6 +69,7 @@ Optional parameters for the worker:
 * `heartbeat`: if provided, will override default [heartbeat](https://www.rabbitmq.com/heartbeats.html) value (in seconds, default 10)
 * `taskTimeout`: task timeout (maximum time in milliseconds allowed to be spent on message handling, default 30000)
 * `processExitTimeout`:  process exit timeout (maximum time in milliseconds the worker will wait for connections to close before forcing exit, default 3000)
+* `channelCloseTimeout`:  timeout between channel cancelation and close (maximum time in milliseconds the worker will let unfinished messages processing before nacking them, default 500)
 * `channelPrefetch`:  channel [prefetch](https://www.rabbitmq.com/consumer-prefetch.html) value (default 100)
 * `logger`:  logger object implementing common logging functions (debug, info, warn, error)
 

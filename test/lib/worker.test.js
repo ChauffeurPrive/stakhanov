@@ -15,7 +15,7 @@ class ChannelStub extends EventEmitter {
   * assertExchange() {} // eslint-disable-line no-empty-function
   * assertQueue() {} // eslint-disable-line no-empty-function
   * bindQueue() {} // eslint-disable-line no-empty-function
-  * consume() {} // eslint-disable-line no-empty-function
+  * consume() { return { consumerTag: 'some-tag' }; }
 }
 class ConnectionStub extends EventEmitter {
   constructor(channelStub) {
@@ -153,7 +153,10 @@ describe('Worker library', () => {
           amqpUrl,
           exchangeName,
           queueName
-        }, { logger });
+        }, {
+          channelCloseTimeout: 1,
+          logger
+        });
         yield worker.listen();
       } catch (err) {
         error = err;
@@ -174,7 +177,10 @@ describe('Worker library', () => {
         amqpUrl,
         exchangeName,
         queueName
-      }, { logger });
+      }, {
+        channelCloseTimeout: 1,
+        logger
+      });
       yield worker.listen();
       channel.publish(exchangeName, routingKey, new Buffer('test'));
       yield worker.wait('task.failed');
@@ -200,6 +206,8 @@ describe('Worker library', () => {
         amqpUrl,
         exchangeName,
         queueName
+      }, {
+        channelCloseTimeout: 1
       });
       yield worker.listen();
       channel.publish(exchangeName, routingKey, new Buffer(JSON.stringify(messageContent)));
@@ -230,6 +238,7 @@ describe('Worker library', () => {
         queueName
       }, {
         processExitTimeout: 5000,
+        channelCloseTimeout: 1,
         logger
       });
       yield worker.listen();
@@ -259,7 +268,10 @@ describe('Worker library', () => {
           amqpUrl,
           exchangeName,
           queueName
-        }, { logger }
+        }, {
+          channelCloseTimeout: 1,
+          logger
+        }
       );
       yield worker.listen();
       channel.publish(exchangeName, routingKey, new Buffer(JSON.stringify(messageContent2)));
@@ -295,8 +307,8 @@ describe('Worker library', () => {
           amqpUrl,
           exchangeName,
           queueName
-        },
-        {
+        }, {
+          channelCloseTimeout: 1,
           logger
         }
       );
@@ -324,7 +336,10 @@ describe('Worker library', () => {
         amqpUrl,
         exchangeName,
         queueName
-      }, { logger });
+      }, {
+        channelCloseTimeout: 1,
+        logger
+      });
       yield worker.listen();
       yield worker.close(false);
       const url = connectStub.firstCall.args[0];
@@ -345,7 +360,10 @@ describe('Worker library', () => {
         amqpUrl,
         exchangeName,
         queueName
-      }, { logger });
+      }, {
+        channelCloseTimeout: 1,
+        logger
+      });
       yield worker.listen();
       channel.publish(exchangeName, routingKey, new Buffer(JSON.stringify(messageContent2)));
       yield worker.wait('task.retried');
@@ -373,7 +391,10 @@ describe('Worker library', () => {
         amqpUrl,
         exchangeName,
         queueName
-      }, { logger });
+      }, {
+        channelCloseTimeout: 1,
+        logger
+      });
       yield worker.listen();
       channel.publish(exchangeName, routingKey, new Buffer(JSON.stringify(messageContent2)));
       yield worker.wait('task.retried');
@@ -437,6 +458,7 @@ describe('Worker library', () => {
           exchangeName,
           queueName
         }, {
+          channelCloseTimeout: 1,
           processExitTimeout: 1,
           logger
         });
@@ -460,12 +482,78 @@ describe('Worker library', () => {
           exchangeName,
           queueName
         }, {
+          channelCloseTimeout: 1,
           processExitTimeout: 1,
           logger
         });
       yield worker.listen();
       yield worker.close(false);
       expect(exitStub.args).to.deep.equal([]);
+    });
+
+    it('should finish handling current messages before closing a channel', function* test() {
+      const handlerStub = sandbox.stub()
+        .returns(() => new Promise(resolve => setTimeout(resolve, 20)));
+      const worker = createWorkers([{
+        handle: handlerStub,
+        validate: _.identity,
+        routingKey
+      }],
+        {
+          workerName,
+          amqpUrl,
+          exchangeName,
+          queueName
+        }, {
+          channelCloseTimeout: 50,
+          processExitTimeout: 1,
+          logger
+        });
+      yield worker.listen();
+      const message = new Buffer(JSON.stringify({ hello: 'world' }));
+      channel.publish(exchangeName, routingKey, message);
+      yield cb => setTimeout(cb, 10);
+      yield worker.close(false);
+
+      const remainingMessage = yield channel.get(formattedQueueName);
+      expect(remainingMessage).to.equal(false);
+    });
+
+    it('should nack unfinished messages if the close timeout is over', function* test() {
+      const handlerStub = sandbox.stub()
+        .returns(() => new Promise(resolve => setTimeout(resolve, 20)));
+      const worker = createWorkers([{
+        handle: handlerStub,
+        validate: _.identity,
+        routingKey
+      }],
+        {
+          workerName,
+          amqpUrl,
+          exchangeName,
+          queueName
+        }, {
+          channelCloseTimeout: 5,
+          processExitTimeout: 1,
+          logger
+        });
+      yield worker.listen();
+      const message = new Buffer(JSON.stringify({ hello: 'world' }));
+      channel.publish(exchangeName, routingKey, message);
+      yield cb => setTimeout(cb, 10);
+      yield worker.close(false);
+
+      const remainingMessage = yield channel.get(formattedQueueName);
+      expect(_.omit(remainingMessage, 'properties')).to.deep.equal({
+        content: message,
+        fields: {
+          deliveryTag: 1,
+          exchange: 'testexchange',
+          messageCount: 0,
+          redelivered: true,
+          routingKey: 'test.something_happened'
+        }
+      });
     });
   });
 
