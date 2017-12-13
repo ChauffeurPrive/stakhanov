@@ -389,6 +389,37 @@ describe('Worker library', () => {
       const message = yield channel.get(formattedQueueName);
       expect(message).to.be.false();
     });
+
+    it('should set the prefetch parameter', function* test() {
+      const channelMock = new ChannelStub();
+      const prefetchStub = sandbox.stub(channelMock, 'prefetch')
+        .returns(Promise.resolve());
+      const connectionMock = new ConnectionStub(channelMock);
+
+      const connectionStub = sandbox
+        .stub(amqplib, 'connect')
+        .returns(new Promise(resolve => resolve(connectionMock)));
+
+      const worker = createWorkers([{
+        handle: _.identity,
+        validate: _.identity,
+        routingKey
+      }], {
+        workerName,
+        amqpUrl,
+        exchangeName,
+        queueName
+      }, {
+        channelPrefetch: 50
+      });
+
+      yield worker.listen();
+
+      expect(connectionStub.callCount).to.equal(1);
+      expect(prefetchStub.args).to.deep.equal([
+        [50]
+      ]);
+    });
   });
 
   describe('forceExit parameter setting', () => {
