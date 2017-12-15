@@ -1,6 +1,6 @@
 {
   "name": "stakhanov",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "AMQP worker library",
   "main": "index.js",
   "engines": {

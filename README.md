@@ -61,7 +61,9 @@ An array of handlers to handle incoming messages, each handler is an object with
 Configuration of the worker:
 * `amqpUrl`: url of the AMQP broker
 * `exchangeName`: name of the exchange to listen on
+* `exchangeType`: type of the exchange (default to `topic`)
 * `queueName`: name of the queue to bind to / create
+* `queueoptions`: queue options (default to `{}`)
 * `workerName`: name of the worker, used for logging purposes
 
 #### options
