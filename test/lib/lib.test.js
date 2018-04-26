@@ -48,5 +48,20 @@ describe('lib', () => {
       expect(error).to.exist();
       expect(error.toString()).to.equal('Error: Yieldable timeout in test');
     });
+
+    it('should work as expected if the yieldable resolves', function* test() {
+      yield promisifyWithTimeout(Promise.resolve(), 'test', 100);
+    });
+
+    it('should work as expected if the yieldable rejects', function* test() {
+      const rejectedError = new Error();
+      let error;
+      try {
+        yield promisifyWithTimeout(Promise.reject(rejectedError), 'test', 100);
+      } catch (err) {
+        error = err;
+      }
+      expect(error).to.equal(rejectedError);
+    });
   });
 });
