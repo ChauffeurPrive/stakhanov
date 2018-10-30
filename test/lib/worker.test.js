@@ -17,12 +17,14 @@ class ChannelStub extends EventEmitter {
   * bindQueue() {} // eslint-disable-line no-empty-function
   * consume() { return { consumerTag: 'some-tag' }; }
 }
+
 class ConnectionStub extends EventEmitter {
   constructor(channelStub) {
     super();
 
     this.channelStub = channelStub;
   }
+
   * createChannel() {
     return this.channelStub || new ChannelStub();
   }
@@ -726,14 +728,20 @@ describe('Worker library', () => {
     let connectionMock;
     let channelMock;
     let connectionStub; // eslint-disable-line no-unused-vars
+    let exitStub;
 
     beforeEach(function* beforeEach() {
       channelMock = new ChannelStub();
       connectionMock = new ConnectionStub(channelMock);
+      exitStub = sandbox.stub(process, 'exit');
 
       connectionStub = sandbox
         .stub(amqplib, 'connect')
         .returns(new Promise(resolve => resolve(connectionMock)));
+
+      channelMock.cancel = sandbox.spy();
+
+      connectionMock.close = sandbox.stub().returns(new Promise(resolve => resolve(true)));
 
       sandbox.spy(logger, 'info');
       sandbox.spy(logger, 'warn');
@@ -748,7 +756,12 @@ describe('Worker library', () => {
         amqpUrl,
         exchangeName,
         queueName
-      }, { logger });
+      }, {
+        channelCloseTimeout: 10,
+        processExitTimeout: 1,
+        closeOnSignals: false,
+        logger
+      });
 
       yield worker.listen();
     });
@@ -761,11 +774,15 @@ describe('Worker library', () => {
         ).to.be.true();
       });
 
-      it('should log if connection is closing', function* test() {
+      it('should log if connection is closing and exit', function* test() {
         connectionMock.emit('close');
+        yield cb => setTimeout(cb, 20);
         expect(logger.info.calledWithMatch(
           { workerName }, '[AMQP] Connection closing, exiting')
         ).to.be.true();
+        expect(channelMock.cancel.args).deep.equal([['some-tag']]);
+        expect(connectionMock.close.args).deep.equal([[true]]);
+        expect(exitStub.args).deep.equal([[0]]);
       });
 
       it('should log if connection is in error', function* test() {
@@ -777,11 +794,15 @@ describe('Worker library', () => {
     });
 
     describe('#subscribeToChannelEvents', () => {
-      it('should log if channel is closed', function* test() {
+      it('should log if channel is closed and exit', function* test() {
         channelMock.emit('close');
+        yield cb => setTimeout(cb, 20);
         expect(logger.info.calledWithMatch(
           { workerName }, '[AMQP] channel closed')
         ).to.be.true();
+        expect(channelMock.cancel.args).deep.equal([['some-tag']]);
+        expect(connectionMock.close.args).deep.equal([[true]]);
+        expect(exitStub.args).deep.equal([[0]]);
       });
 
       it('should log if channel is in error', function* test() {
