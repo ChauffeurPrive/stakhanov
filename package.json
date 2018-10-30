@@ -10,7 +10,7 @@
     "test": "test"
   },
   "dependencies": {
-    "amqplib": "0.5.1",
+    "amqplib": "0.5.2",
     "co": "4.6.0",
     "joi": "13.6.0",
     "lodash": "4.17.5"
