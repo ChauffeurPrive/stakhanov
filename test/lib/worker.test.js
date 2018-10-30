@@ -412,6 +412,7 @@ describe('Worker library', () => {
       ).to.be.true();
       const message = yield channel.get(formattedQueueName);
       expect(message).to.be.false();
+      expect(handlerStub).to.have.been.called(2);
     });
 
     it('should set the prefetch parameter', function* test() {
