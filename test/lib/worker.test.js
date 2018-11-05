@@ -781,7 +781,7 @@ describe('Worker library', () => {
           { workerName }, '[AMQP] Connection closing, exiting')
         ).to.be.true();
         expect(channelMock.cancel.args).deep.equal([['some-tag']]);
-        expect(connectionMock.close.args).deep.equal([[true]]);
+        expect(connectionMock.close.args).deep.equal([]);
         expect(exitStub.args).deep.equal([[0]]);
       });
 
@@ -800,7 +800,7 @@ describe('Worker library', () => {
         expect(logger.info.calledWithMatch(
           { workerName }, '[AMQP] channel closed')
         ).to.be.true();
-        expect(channelMock.cancel.args).deep.equal([['some-tag']]);
+        expect(channelMock.cancel.args).deep.equal([]);
         expect(connectionMock.close.args).deep.equal([[true]]);
         expect(exitStub.args).deep.equal([[0]]);
       });
