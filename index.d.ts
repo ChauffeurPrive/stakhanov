@@ -1,4 +1,4 @@
-// Type definitions for stakhanov 0.7.0
+// Type definitions for stakhanov 0.7.1
 // Project: stakhanov
 // Definitions by: Chauffeur Privé
 // TypeScript Version: 3.0.1
@@ -10,14 +10,6 @@ interface Logger {
   info: () => void;
   warn: () => void;
   error: () => void;
-}
-
-declare namespace Stakhanov {
-  export function createWorkers(
-    handlers: Stakhanov.Handler[],
-    config: Stakhanov.Config,
-    options?: Stakhanov.Options
-  ): Stakhanov.Process;
 }
 
 declare namespace Stakhanov {
@@ -53,6 +45,12 @@ declare namespace Stakhanov {
     channelCloseTimeout?: number;
     logger?: Logger;
   }
+
+  export function createWorkers(
+    handlers: Handler[],
+    config: Config,
+    options?: Options
+  ): Process;
 }
 
 export = Stakhanov;
