@@ -15,7 +15,7 @@ interface Logger {
 declare namespace Stakhanov {
   export interface Process {
     listen: () => void;
-    close: (forceExit?: Boolean) => void;
+    close: (forceExit?: boolean) => void;
     wait: (eventName: string, timeout?: number) => Promise<void>;
     TASK_COMPLETED: string;
     TASK_RETRIED: string;
@@ -41,7 +41,7 @@ declare namespace Stakhanov {
     taskTimeout?: number;
     processExitTimeout?: number;
     channelPrefetch?: number;
-    closeOnSignals?: Boolean;
+    closeOnSignals?: boolean;
     channelCloseTimeout?: number;
     logger?: Logger;
   }
