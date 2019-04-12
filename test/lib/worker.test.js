@@ -453,6 +453,7 @@ describe('Worker library', () => {
       process.removeAllListeners('SIGTERM');
       process.removeAllListeners('SIGINT');
       exitStub = sandbox.stub(process, 'exit');
+      sandbox.spy(logger, 'error');
     });
 
     it('should forcefully exit process on worker close (forceExit=true)', function* test() {
@@ -497,6 +498,104 @@ describe('Worker library', () => {
       yield worker.listen();
       yield worker.close(false);
       expect(exitStub.args).to.deep.equal([]);
+    });
+
+    it('should not throw an error when channels close fails', function* test() {
+      const channelMock = new ChannelStub();
+      const connectionMock = new ConnectionStub(channelMock);
+      sandbox
+        .stub(amqplib, 'connect')
+        .returns(Promise.resolve(connectionMock));
+
+      channelMock.cancel = sandbox.stub().throws(new Error('Channel cancel failure test'));
+      connectionMock.close = sandbox.stub().returns(Promise.resolve(true));
+
+      const worker = createWorkers([
+        {
+          handle: _.identity,
+          validate: _.identity,
+          routingKey
+        },
+        {
+          handle: _.identity,
+          validate: _.identity,
+          routingKey: 'test.something_else_happened'
+        }],
+        {
+          workerName,
+          amqpUrl,
+          exchangeName,
+          queueName
+        }, {
+          channelCloseTimeout: 1,
+          processExitTimeout: 1,
+          logger
+        });
+
+      yield worker.listen();
+
+      let closeError;
+      try {
+        yield worker.close(true);
+      } catch (error) {
+        closeError = error;
+      }
+
+      expect(logger.error.calledWithMatch(
+        {
+          workerName,
+          error: new Error('Channel cancel failure test')
+        },
+        '[worker#close] Channels cancel failure')
+      ).to.be.true();
+      expect(closeError).to.equal(undefined);
+    });
+
+    it('should not throw an error when worker connection close fails', function* test() {
+      const channelMock = new ChannelStub();
+      const connectionMock = new ConnectionStub(channelMock);
+      sandbox
+        .stub(amqplib, 'connect')
+        .returns(Promise.resolve(connectionMock));
+
+      channelMock.cancel = sandbox.stub().returns(Promise.resolve(true));
+      connectionMock.close = sandbox.stub().throws(
+        new Error('Worker connection close failure test')
+      );
+
+      const worker = createWorkers([{
+        handle: _.identity,
+        validate: _.identity,
+        routingKey
+      }],
+        {
+          workerName,
+          amqpUrl,
+          exchangeName,
+          queueName
+        }, {
+          channelCloseTimeout: 1,
+          processExitTimeout: 1,
+          logger
+        });
+
+      yield worker.listen();
+
+      let closeError;
+      try {
+        yield worker.close(true);
+      } catch (error) {
+        closeError = error;
+      }
+
+      expect(logger.error.calledWithMatch(
+        {
+          workerName,
+          error: new Error('Worker connection close failure test')
+        },
+        '[worker#close] Worker connection close failure')
+      ).to.be.true();
+      expect(closeError).to.equal(undefined);
     });
 
     it('should be idempotent (can be safely called twice)', function* test() {
