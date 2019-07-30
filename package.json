@@ -1,6 +1,6 @@
 {
   "name": "stakhanov",
-  "version": "0.7.3",
+  "version": "1.0.0",
   "description": "AMQP worker library",
   "main": "index.js",
   "engines": {
@@ -28,11 +28,8 @@
     "mocha": "5.2.0",
     "mocha-only-detector": "0.1.0",
     "nyc": "13.1.0",
-    "objectid": "3.2.1",
-    "sinon": "1.17.5",
-    "sinon-chai": "2.8.0",
-    "superagent": "3.7.0",
-    "supertest": "3.3.0"
+    "sinon": "7.4.2",
+    "sinon-chai": "2.8.0"
   },
   "scripts": {
     "pretest": "npm run lint",

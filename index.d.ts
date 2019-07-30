@@ -1,4 +1,4 @@
-// Type definitions for stakhanov 0.7.1
+// Type definitions for stakhanov 1.0.0
 // Project: stakhanov
 // Definitions by: Chauffeur Privé
 // TypeScript Version: 3.0.1
@@ -10,6 +10,11 @@ interface Logger {
   info: () => void;
   warn: () => void;
   error: () => void;
+  child: (context: object) => Logger;
+}
+
+interface AMQPFields {
+  redelivered: boolean;
 }
 
 declare namespace Stakhanov {
@@ -18,7 +23,6 @@ declare namespace Stakhanov {
     close: (forceExit?: boolean) => void;
     wait: (eventName: string, timeout?: number) => Promise<void>;
     TASK_COMPLETED: string;
-    TASK_RETRIED: string;
     TASK_FAILED: string;
     WORKER_CLOSED: string;
   }
@@ -26,7 +30,8 @@ declare namespace Stakhanov {
   export interface Handler<TBusMessage = any, TValidatedMessage = any> {
     routingKey: string;
     validate: (message: TBusMessage) => TValidatedMessage;
-    handle: (message: TValidatedMessage) => void;
+    handle: (message: TValidatedMessage) => boolean;
+    consumer: (handler, logger: Logger, fields?: AMQPFields) => boolean;
   }
 
   export interface Config {
@@ -51,6 +56,8 @@ declare namespace Stakhanov {
     config: Config,
     options?: Options
   ): Process;
+
+  // TODO: add consumers
 }
 
 export = Stakhanov;
