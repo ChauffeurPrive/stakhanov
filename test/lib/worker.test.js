@@ -7,6 +7,7 @@ const amqplib = require('amqplib');
 const EventEmitter = require('events');
 
 const { createWorkers } = require('../../lib/createWorkers');
+const consumers = require('../../consumerTypes');
 
 const amqpUrl = 'amqp://guest:guest@localhost:5672';
 
@@ -39,7 +40,8 @@ describe('Worker library', () => {
     debug: () => null,
     info: () => null,
     warn: () => null,
-    error: () => null
+    error: () => null,
+    child: () => logger
   };
 
   const formattedQueueName = `${queueName}.${routingKey}`;
@@ -64,14 +66,15 @@ describe('Worker library', () => {
   });
 
   after(function* after() {
-    yield channel.deleteQueue(formattedQueueName);
-    yield channel.deleteExchange(exchangeName);
+    // yield channel.deleteQueue(formattedQueueName);
+    // yield channel.deleteExchange(exchangeName);
     yield connection.close();
   });
 
   describe('#wait', () => {
     it('should throw an error after the specified timeout', function* test() {
       const worker = createWorkers([{
+        consumer: consumers.noRetry,
         handle: () => true,
         validate: _.identity,
         routingKey
@@ -95,9 +98,8 @@ describe('Worker library', () => {
     it('should not resolve the promise when the event occurs after the timeout', function* test() {
       const worker = createWorkers(
         [{
-          handle: function* handle() {
-            return true;
-          },
+          consumer: consumers.noRetry,
+          handle: () => true,
           validate: _.identity,
           routingKey
         }],
@@ -147,6 +149,7 @@ describe('Worker library', () => {
       let worker;
       try {
         worker = createWorkers([{
+          consumer: consumers.noRetry,
           handle: () => true,
           validate: _.identity,
           routingKey
@@ -171,6 +174,7 @@ describe('Worker library', () => {
     it('should log and discard message if invalid JSON', function* test() {
       sandbox.spy(logger, 'warn');
       const worker = createWorkers([{
+        consumer: consumers.noRetry,
         handle: () => true,
         validate: _.identity,
         routingKey
@@ -194,6 +198,7 @@ describe('Worker library', () => {
       let validatorCalled = false;
       let workerCalled = false;
       const worker = createWorkers([{
+        consumer: consumers.noRetry,
         handle: function* handle() {
           workerCalled = true;
           return true;
@@ -224,6 +229,7 @@ describe('Worker library', () => {
       let validatorCalled = false;
       let workerCalled = false;
       const worker = createWorkers([{
+        consumer: consumers.noRetry,
         handle: function* handle() {
           workerCalled = true;
           return true;
@@ -258,6 +264,7 @@ describe('Worker library', () => {
       let workerCalled = false;
       const worker = createWorkers(
         [{
+          consumer: consumers.noRetry,
           handle: function* handle() {
             workerCalled = true;
             return true;
@@ -290,6 +297,7 @@ describe('Worker library', () => {
       const routingKey2 = `${routingKey}_2`;
       const worker = createWorkers(
         [{
+          consumer: consumers.noRetry,
           handle: function* handle(content) {
             worker1CallParameter = content;
             return true;
@@ -297,6 +305,7 @@ describe('Worker library', () => {
           validate: _.noop,
           routingKey
         }, {
+          consumer: consumers.noRetry,
           handle: function* handle(content) {
             worker2CallParameter = content;
             return true;
@@ -330,6 +339,7 @@ describe('Worker library', () => {
     it('should perform url resolution correctly', function* test() {
       const connectStub = sandbox.spy(amqplib, 'connect');
       const worker = createWorkers([{
+        consumer: consumers.noRetry,
         handle: () => null,
         validate: _.identity,
         routingKey
@@ -348,12 +358,12 @@ describe('Worker library', () => {
       expect(url).to.equal('amqp://guest:guest@localhost:5672?heartbeat=10');
     });
 
-    it('should retry to handle message once on error catched', function* test() {
+    it('should retry to handle message if consumer type failed and retried', function* test() {
       const handlerStub = sandbox.stub();
-      sandbox.spy(logger, 'warn');
       handlerStub.onFirstCall().throws();
       handlerStub.onSecondCall().returns(true);
       const worker = createWorkers([{
+        consumer: consumers.retryOnce,
         handle: handlerStub,
         validate: _.identity,
         routingKey
@@ -368,48 +378,9 @@ describe('Worker library', () => {
       });
       yield worker.listen();
       channel.publish(exchangeName, routingKey, new Buffer(JSON.stringify(messageContent2)));
-      yield worker.wait('task.retried');
+      yield worker.wait('task.failed');
       yield worker.wait('task.completed');
       yield worker.close(false);
-      expect(logger.warn.calledWithMatch(
-        { workerName },
-        '[worker#listen] Message handler failed to process message #1 - retrying one time')
-      ).to.be.true();
-      const message = yield channel.get(formattedQueueName);
-      expect(message).to.be.false();
-    });
-
-    it('should fail and ack message if handler fails two times on same message', function* test() {
-      const handlerStub = sandbox.stub();
-      sandbox.spy(logger, 'warn');
-      sandbox.spy(logger, 'error');
-      handlerStub.throws();
-      const worker = createWorkers([{
-        handle: handlerStub,
-        validate: _.identity,
-        routingKey
-      }], {
-        workerName,
-        amqpUrl,
-        exchangeName,
-        queueName
-      }, {
-        channelCloseTimeout: 1,
-        logger
-      });
-      yield worker.listen();
-      channel.publish(exchangeName, routingKey, new Buffer(JSON.stringify(messageContent2)));
-      yield worker.wait('task.retried');
-      yield worker.wait('task.failed');
-      yield worker.close(false);
-      expect(logger.warn.calledWithMatch(
-        { workerName },
-        '[worker#listen] Message handler failed to process message #1 - retrying one time')
-      ).to.be.true();
-      expect(logger.error.calledWithMatch(
-        { workerName },
-        '[worker#listen] Consumer handler failed to process message #2 - discard message and fail')
-      ).to.be.true();
       const message = yield channel.get(formattedQueueName);
       expect(message).to.be.false();
     });
@@ -425,6 +396,7 @@ describe('Worker library', () => {
         .returns(new Promise(resolve => resolve(connectionMock)));
 
       const worker = createWorkers([{
+        consumer: consumers.noRetry,
         handle: _.identity,
         validate: _.identity,
         routingKey
@@ -458,6 +430,7 @@ describe('Worker library', () => {
 
     it('should forcefully exit process on worker close (forceExit=true)', function* test() {
       const worker = createWorkers([{
+        consumer: consumers.noRetry,
         handle: _.identity,
         validate: _.identity,
         routingKey
@@ -481,6 +454,7 @@ describe('Worker library', () => {
 
     it('should not exit process on worker close (forceExit=false)', function* test() {
       const worker = createWorkers([{
+        consumer: consumers.noRetry,
         handle: _.identity,
         validate: _.identity,
         routingKey
@@ -512,11 +486,13 @@ describe('Worker library', () => {
 
       const worker = createWorkers([
         {
+          consumer: consumers.noRetry,
           handle: _.identity,
           validate: _.identity,
           routingKey
         },
         {
+          consumer: consumers.noRetry,
           handle: _.identity,
           validate: _.identity,
           routingKey: 'test.something_else_happened'
@@ -541,13 +517,6 @@ describe('Worker library', () => {
         closeError = error;
       }
 
-      expect(logger.error.calledWithMatch(
-        {
-          workerName,
-          error: new Error('Channel cancel failure test')
-        },
-        '[worker#close] Channels cancel failure')
-      ).to.be.true();
       expect(closeError).to.equal(undefined);
     });
 
@@ -564,6 +533,7 @@ describe('Worker library', () => {
       );
 
       const worker = createWorkers([{
+        consumer: consumers.noRetry,
         handle: _.identity,
         validate: _.identity,
         routingKey
@@ -588,18 +558,12 @@ describe('Worker library', () => {
         closeError = error;
       }
 
-      expect(logger.error.calledWithMatch(
-        {
-          workerName,
-          error: new Error('Worker connection close failure test')
-        },
-        '[worker#close] Worker connection close failure')
-      ).to.be.true();
       expect(closeError).to.equal(undefined);
     });
 
     it('should be idempotent (can be safely called twice)', function* test() {
       const worker = createWorkers([{
+        consumer: consumers.noRetry,
         handle: _.identity,
         validate: _.identity,
         routingKey
@@ -626,6 +590,7 @@ describe('Worker library', () => {
       const handlerStub = sandbox.stub()
         .returns(() => new Promise(resolve => setTimeout(resolve, 20)));
       const worker = createWorkers([{
+        consumer: consumers.noRetry,
         handle: handlerStub,
         validate: _.identity,
         routingKey
@@ -658,6 +623,7 @@ describe('Worker library', () => {
       const handlerStub = sandbox.stub()
         .returns(() => new Promise(resolve => setTimeout(resolve, 20)));
       const worker = createWorkers([{
+        consumer: consumers.retryOnce,
         handle: handlerStub,
         validate: _.identity,
         routingKey
@@ -706,6 +672,7 @@ describe('Worker library', () => {
           20)
         ));
       const worker = createWorkers([{
+        consumer: consumers.noRetry,
         handle: handlerStub,
         validate: _.identity,
         routingKey
@@ -737,6 +704,7 @@ describe('Worker library', () => {
           20)
         ));
       const worker = createWorkers([{
+        consumer: consumers.noRetry,
         handle: handlerStub,
         validate: _.identity,
         routingKey
@@ -785,6 +753,7 @@ describe('Worker library', () => {
           20)
         ));
       const worker = createWorkers([{
+        consumer: consumers.noRetry,
         handle: handlerStub,
         validate: _.identity,
         routingKey
@@ -847,6 +816,7 @@ describe('Worker library', () => {
       sandbox.spy(logger, 'error');
 
       const worker = createWorkers([{
+        consumer: consumers.noRetry,
         handle: _.identity,
         validate: _.identity,
         routingKey
